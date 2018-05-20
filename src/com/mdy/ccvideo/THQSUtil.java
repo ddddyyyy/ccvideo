@@ -13,18 +13,47 @@ import java.util.stream.Collectors;
 
 /**
  * CC视频工具类
+ *
  * @author MDY
  */
 public class THQSUtil {
     //点播的key
-    private static final String key = "9V0yomKeGVa29b0EgY8fVKhatdKKAcAg";
+    private static final String key = "";
     //直播的key
-    private static final String room_key = "xM4FxKwGTIy1LSFJfzgxRXczGiSJ31Py";
+    private static final String room_key = "";
     //同一返回JSON格式，并加上userid
-    private static final String url_prefix = "format=json&userid=87DDC645E8B3BAA1";
+    private static final String url_prefix = "format=json&userid=";
     //日期的格式
     private static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
 
+
+    /**
+     * 修改视频信息
+     *
+     * @param videoid     视频id，不可为空
+     * @param title       视频标题
+     * @param tag         视频标签
+     * @param description 视频描述
+     * @param categoryid  视频子分类id
+     * @param playurl     视频播放页面地址，如果不编辑播放地址，请勿加入此参数
+     * @param imageindex  视频封面截图序号，如果不编辑封面截图，请勿加入此参数 注:只可编辑正常可播放状态的视频截图
+     */
+    public String updateVideo(String videoid, String title, String tag, String description,
+                              String categoryid, String playurl, Integer imageindex) {
+        StringBuilder param = new StringBuilder();
+        param.append("&videoid=").append(videoid);
+        try {
+            if (title != null) param.append("&title=").append(URLEncoder.encode(title, "UTF-8"));
+            if (tag != null) param.append("&tag=").append(URLEncoder.encode(tag, "UTF-8"));
+            if (description != null) param.append("&description=").append(URLEncoder.encode(description, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        if (categoryid != null) param.append("&categoryid=").append(categoryid);
+        if (playurl != null) param.append("&playurl=").append(playurl);
+        if (imageindex != null) param.append("&imageindex=").append(imageindex);
+        return request(THQSConstants.update_video, param.toString(), true);
+    }
 
     /**
      * 获取按视频id范围内所有视频列表
@@ -78,22 +107,31 @@ public class THQSUtil {
     /**
      * 按视频标题和分类获取视频
      *
-     * @param title      查询的标题
+     * @param type 查询的类型，现在有标题，标签两类
+     * @param content      查询的内容
      * @param sort       是否排序，否为升序，是为降序
      * @param numPerPage 返回信息时，每页包含的视频个数 注:允许范围为 1~100
      * @param page       当前页码
      * @param categoryId 视频分类的id，可为空
      */
-    public String searchVideo(String title, Boolean sort, String categoryId, Integer numPerPage, Integer page) {
+    public String searchVideo(THQSConstants type, String content, Boolean sort, String categoryId, Integer numPerPage, Integer page) {
         StringBuilder param = new StringBuilder();
         if (categoryId != null) {
             param.append("&categoryid=").append(categoryId);
         }
+        param.append("&num_per_page=").append(numPerPage)
+                .append("&page=").append(page);
+        switch (type) {
+            case TITLE:
+                param.append("&q=TITLE%3A");
+                break;
+            case TAG:
+                param.append("&q=TAG%3A");
+                break;
+        }
         try {
-            //对标题进行转码，：也需要转码
-            param.append("&num_per_page=").append(numPerPage)
-                    .append("&page=").append(page)
-                    .append("&q=TITLE%3A").append(URLEncoder.encode(title, "UTF-8"));
+            //对中文进行转码，：也需要转码
+            param.append(URLEncoder.encode(content, "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -108,7 +146,8 @@ public class THQSUtil {
 
     /**
      * 获得直播间列表
-     * @param pagenum 每页显示的个数	可选，系统默认值为50
+     *
+     * @param pagenum   每页显示的个数	可选，系统默认值为50
      * @param pageindex 页码	可选，系统默认值为1
      */
     public String getRoomList(Integer pagenum, Integer pageindex) {
@@ -194,7 +233,7 @@ public class THQSUtil {
 
     /**
      * @param queryString 要求转化的参数
-     * @param isVideo 是否调用点播，true为点播api，false为直播api
+     * @param isVideo     是否调用点播，true为点播api，false为直播api
      * @return 有效的请求参数
      */
     private String decode(String queryString, boolean isVideo) {
@@ -218,8 +257,9 @@ public class THQSUtil {
     /**
      * 使用HttpURLConnection
      * 访问CC视频接口的函数
+     *
      * @param requestUri 調用的api的地址
-     * @param isVideo 是否调用点播，true为点播api，false为直播api
+     * @param isVideo    是否调用点播，true为点播api，false为直播api
      * @return 请求结果
      */
     private String request(String requestUri, String params, boolean isVideo) {
