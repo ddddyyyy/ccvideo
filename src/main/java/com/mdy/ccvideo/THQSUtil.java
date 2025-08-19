@@ -1,6 +1,19 @@
 package com.mdy.ccvideo;
 
-import java.io.*;
+import com.alibaba.fastjson.JSONObject;
+import com.mdy.ccvideo.dict.THQSConstants;
+import com.mdy.ccvideo.dict.THQSErrorCode;
+import com.mdy.ccvideo.exception.ExceptionHelper;
+import com.mdy.ccvideo.exception.THQSException;
+import com.mdy.ccvideo.util.IStringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -10,21 +23,163 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.stream.Collectors;
 
+import static com.mdy.ccvideo.dict.THQSConstants.dateFormat;
+import static com.mdy.ccvideo.dict.THQSConstants.key;
+import static com.mdy.ccvideo.dict.THQSConstants.room_key;
+import static com.mdy.ccvideo.dict.THQSConstants.url_prefix;
+
 
 /**
  * CC视频工具类
+ *
  * @author MDY
  */
 public class THQSUtil {
-    //点播的key
-    private static final String key = "";
-    //直播的key
-    private static final String room_key = "";
-    //同一返回JSON格式，并加上userid
-    private static final String url_prefix = "format=json&userid=87DDC645E8B3BAA1";
-    //日期的格式
-    private static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
 
+    private static final Logger log = LogManager.getLogger(THQSUtil.class);
+
+    /**
+     * @param result 请求返回的报文
+     * @return 请求返回的报文
+     */
+    private String checkResult(String result) {
+        try {
+            JSONObject jsonObject = JSONObject.parseObject(result);
+            String error = jsonObject.getString("error");
+            if (IStringUtils.isNotBlank(error)) {
+                // 请求返回异常
+                try {
+                    throw new THQSException(THQSErrorCode.valueOf(error));
+                } catch (IllegalArgumentException e) {
+                    // 异常不在枚举内
+                    throw new THQSException(error,THQSErrorCode.UNKNOWN.name());
+                }
+            }
+        } catch (Exception e) {
+            if (e instanceof THQSException) {
+                throw e;
+            } else {
+                log.error(ExceptionHelper.getTrace(e));
+                throw new THQSException(e.getMessage(),THQSErrorCode.UNKNOWN.name());
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 根据视频id获取视频信息
+     *
+     * @param videoId   视频id
+     * @param imageType 返回封面截图的类型,默认值:0(0:小图;1:大图)
+     */
+    public String getVideoInfo(String videoId, Integer imageType) {
+        StringBuilder param = new StringBuilder();
+        param.append("&videoid=").append(videoId);
+        if (null != imageType) {
+            param.append("&imagetype").append(imageType);
+        }
+        return request(THQSConstants.get_video_info, param.toString(), true);
+    }
+
+    /**
+     * @param description 视频描述
+     * @param tag         视频标签
+     * @param categoryId  分类id
+     * @param filename    文件名
+     * @param filesize    文件大小
+     * @param notify_url  回调地址
+     * @return 视频上传的信息
+     */
+    public String createVideoUploadInfo(String title, String description, String tag, String categoryId, String filename, String filesize, String notify_url) throws UnsupportedEncodingException {
+        StringBuilder param = new StringBuilder();
+        if (tag != null) {
+            param.append("&tag=").append(URLEncoder.encode(tag, "UTF-8"));
+        }
+        if (description != null) {
+            param.append("&description=").append(URLEncoder.encode(description, "UTF-8"));
+        }
+        if (categoryId != null) {
+            param.append("&categoryid=").append(categoryId);
+        }
+        if (filename != null) {
+            param.append("&filename=").append(URLEncoder.encode(filename, "UTF-8"));
+        }
+        if (title != null) {
+            param.append("&title=").append(URLEncoder.encode(title, "UTF-8"));
+        }
+        if (filesize != null) {
+            param.append("&filesize=").append(filesize);
+        }
+        if (notify_url != null) {
+            param.append("&notify_url=").append(URLEncoder.encode(notify_url, "UTF-8"));
+        }
+        return request(THQSConstants.VIDEO_CREATE_UPLOAD_INFO, param.toString(), true);
+    }
+
+    /**
+     * @param videoid       视频id，不可为空
+     * @param playerid      播放器id，可为空，若为空，返回默认播放器
+     * @param player_width  播放器宽度，可为空，单位px，若为空，返回600
+     * @param player_height 播放器高度，可为空，单位px，若为空，返回490
+     * @param auto_play     是否自动播放，可为空，true 或false,若为空，返回false
+     * @return 视频播放的js代码
+     * @throws UnsupportedEncodingException 不支持编码
+     */
+    public String getVideoPlayUrl(String videoid, String playerid, String player_width, String player_height, String auto_play) throws UnsupportedEncodingException {
+        StringBuilder param = new StringBuilder();
+        param.append("&videoid=").append(URLEncoder.encode(videoid, "UTF-8"));
+        param.append("&playerid=").append(URLEncoder.encode("85DF102AFC882C2C", "UTF-8"));
+        if (playerid != null) {
+            param.append("&playerid=").append(URLEncoder.encode(playerid, "UTF-8"));
+        }
+        if (player_width != null) {
+            param.append("&player_width=").append(URLEncoder.encode(player_width, "UTF-8"));
+        }
+        if (player_height != null) {
+            param.append("&player_height=").append(URLEncoder.encode(player_height, "UTF-8"));
+        }
+        if (auto_play != null) {
+            param.append("&auto_play=").append(URLEncoder.encode(auto_play, "UTF-8"));
+        }
+        return request(THQSConstants.video_play, param.toString(), true);
+    }
+
+    /**
+     * 根据视频id删除视频
+     *
+     * @param videoid 要删除的视频的id
+     */
+    public String deleteVideo(String videoid) {
+        return request(THQSConstants.delete_video, "&videoid=" + videoid, true);
+    }
+
+    /**
+     * 修改视频信息
+     *
+     * @param videoid     视频id，不可为空
+     * @param title       视频标题
+     * @param tag         视频标签
+     * @param description 视频描述
+     * @param categoryid  视频子分类id
+     * @param playurl     视频播放页面地址，如果不编辑播放地址，请勿加入此参数
+     * @param imageindex  视频封面截图序号，如果不编辑封面截图，请勿加入此参数 注:只可编辑正常可播放状态的视频截图
+     */
+    public String updateVideo(String videoid, String title, String tag, String description,
+                              String categoryid, String playurl, Integer imageindex) {
+        StringBuilder param = new StringBuilder();
+        param.append("&videoid=").append(videoid);
+        try {
+            if (title != null) param.append("&title=").append(URLEncoder.encode(title, "UTF-8"));
+            if (tag != null) param.append("&tag=").append(URLEncoder.encode(tag, "UTF-8"));
+            if (description != null) param.append("&description=").append(URLEncoder.encode(description, "UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        if (categoryid != null) param.append("&categoryid=").append(categoryid);
+        if (playurl != null) param.append("&playurl=").append(playurl);
+        if (imageindex != null) param.append("&imageindex=").append(imageindex);
+        return request(THQSConstants.update_video, param.toString(), true);
+    }
 
     /**
      * 获取按视频id范围内所有视频列表
@@ -60,11 +215,10 @@ public class THQSUtil {
      * @param categoryId 视频分类的id，不可为空
      */
     public String getVideoListByCategory(Integer numPerPage, Integer page, String categoryId) {
-        StringBuilder param = new StringBuilder();
-        param.append("&categoryid=").append(categoryId)
-                .append("&num_per_page=").append(numPerPage)
-                .append("&page=").append(page);
-        return request(THQSConstants.get_video_list_by_category, param.toString(), true);
+        String param = "&categoryid=" + categoryId +
+                "&num_per_page=" + numPerPage +
+                "&page=" + page;
+        return request(THQSConstants.get_video_list_by_category, param, true);
     }
 
     /**
@@ -78,22 +232,31 @@ public class THQSUtil {
     /**
      * 按视频标题和分类获取视频
      *
-     * @param title      查询的标题
+     * @param type       查询的类型，现在有标题，标签两类
+     * @param content    查询的内容
      * @param sort       是否排序，否为升序，是为降序
      * @param numPerPage 返回信息时，每页包含的视频个数 注:允许范围为 1~100
      * @param page       当前页码
      * @param categoryId 视频分类的id，可为空
      */
-    public String searchVideo(String title, Boolean sort, String categoryId, Integer numPerPage, Integer page) {
+    public String searchVideo(THQSConstants type, String content, Boolean sort, String categoryId, Integer numPerPage, Integer page) {
         StringBuilder param = new StringBuilder();
         if (categoryId != null) {
             param.append("&categoryid=").append(categoryId);
         }
+        param.append("&num_per_page=").append(numPerPage)
+                .append("&page=").append(page);
+        switch (type) {
+            case TITLE:
+                param.append("&q=TITLE%3A");
+                break;
+            case TAG:
+                param.append("&q=TAG%3A");
+                break;
+        }
         try {
-            //对标题进行转码，：也需要转码
-            param.append("&num_per_page=").append(numPerPage)
-                    .append("&page=").append(page)
-                    .append("&q=TITLE%3A").append(URLEncoder.encode(title, "UTF-8"));
+            //对中文进行转码，：也需要转码
+            param.append(URLEncoder.encode(content, "UTF-8"));
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
@@ -108,7 +271,8 @@ public class THQSUtil {
 
     /**
      * 获得直播间列表
-     * @param pagenum 每页显示的个数	可选，系统默认值为50
+     *
+     * @param pagenum   每页显示的个数	可选，系统默认值为50
      * @param pageindex 页码	可选，系统默认值为1
      */
     public String getRoomList(Integer pagenum, Integer pageindex) {
@@ -176,11 +340,11 @@ public class THQSUtil {
      * 二进制转十六进制
      */
     private String bytesToHex(byte[] bytes) {
-        StringBuffer md5str = new StringBuffer();
+        StringBuilder md5str = new StringBuilder();
         // 把数组每一字节换成16进制连成md5字符串
         int digital;
-        for (int i = 0; i < bytes.length; i++) {
-            digital = bytes[i];
+        for (byte aByte : bytes) {
+            digital = aByte;
             if (digital < 0) {
                 digital += 256;
             }
@@ -194,7 +358,7 @@ public class THQSUtil {
 
     /**
      * @param queryString 要求转化的参数
-     * @param isVideo 是否调用点播，true为点播api，false为直播api
+     * @param isVideo     是否调用点播，true为点播api，false为直播api
      * @return 有效的请求参数
      */
     private String decode(String queryString, boolean isVideo) {
@@ -218,8 +382,9 @@ public class THQSUtil {
     /**
      * 使用HttpURLConnection
      * 访问CC视频接口的函数
+     *
      * @param requestUri 調用的api的地址
-     * @param isVideo 是否调用点播，true为点播api，false为直播api
+     * @param isVideo    是否调用点播，true为点播api，false为直播api
      * @return 请求结果
      */
     private String request(String requestUri, String params, boolean isVideo) {
@@ -233,18 +398,18 @@ public class THQSUtil {
             conn.connect();
             InputStream inputStream = conn.getInputStream();
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"));
-            final StringBuffer stringBuffer = new StringBuffer();
+            final StringBuilder stringBuffer = new StringBuilder();
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 stringBuffer.append(line);
             }
             bufferedReader.close();
             inputStream.close();
-            return stringBuffer.toString();
+            return checkResult(stringBuffer.toString());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(ExceptionHelper.getTrace(e));
+            throw new THQSException(THQSErrorCode.NETWORK_ERROR);
         }
-        return null;
     }
 
 }
