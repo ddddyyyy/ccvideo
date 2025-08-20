@@ -15,6 +15,20 @@ public enum THQSConstants {
      */
     TAG;
 
+
+    // =================================== 参数 列表 =======================================  //
+
+    public static final String CC_VIDEO_SWITCH = "ccvideo.switch";
+    //点播的key
+    public static final String KEY_PROP = "ccvideo.key";
+    //直播的key
+    public static final String ROOM_KEY_PROP = "ccvideo.roomKey";
+    //用户ID
+    public static final String USERID_PROP = "ccvideo.userid";
+
+    // =================================== 参数 列表 =======================================  //
+
+
     // =================================== CC API 列表 =======================================  //
 
     public static final String VIDEO_CREATE_UPLOAD_INFO = "http://spark.bokecc.com/api/video/create/v2?";
@@ -33,14 +47,6 @@ public enum THQSConstants {
     // =================================== CC API 列表 =======================================  //
 
 
-    //点播的key
-    public static final String key = "";
-    //直播的key
-    public static final String room_key = "";
-    //用户ID
-    public static final String userid = "";
-    //同一返回JSON格式，并加上userid
-    public static final String url_prefix = String.format("format=json&userid=%s", userid);
     //日期的格式
     public static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
 

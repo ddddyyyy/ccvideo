@@ -6,6 +6,7 @@ import com.mdy.ccvideo.dict.THQSErrorCode;
 import com.mdy.ccvideo.exception.ExceptionHelper;
 import com.mdy.ccvideo.exception.THQSException;
 import com.mdy.ccvideo.util.IStringUtils;
+import com.mdy.ccvideo.util.UserContextHelper;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,7 +19,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 
-import static com.mdy.ccvideo.dict.THQSConstants.url_prefix;
 import static com.mdy.ccvideo.util.RequestHelper.decode;
 
 
@@ -30,6 +30,9 @@ import static com.mdy.ccvideo.util.RequestHelper.decode;
 public class THQSUtil {
 
     private static final Logger log = LogManager.getLogger(THQSUtil.class);
+
+    //统一一返回JSON格式，并加上userid
+    private static final String url_prefix_prefix = "format=json&userid=%s";
 
     /**
      * @param result 请求返回的报文
@@ -45,7 +48,7 @@ public class THQSUtil {
                     throw new THQSException(THQSErrorCode.valueOf(error));
                 } catch (IllegalArgumentException e) {
                     // 异常不在枚举内
-                    throw new THQSException(error,THQSErrorCode.UNKNOWN.name());
+                    throw new THQSException(error, THQSErrorCode.UNKNOWN.name());
                 }
             }
         } catch (Exception e) {
@@ -53,7 +56,7 @@ public class THQSUtil {
                 throw e;
             } else {
                 log.error(ExceptionHelper.getTrace(e));
-                throw new THQSException(e.getMessage(),THQSErrorCode.UNKNOWN.name());
+                throw new THQSException(e.getMessage(), THQSErrorCode.UNKNOWN.name());
             }
         }
         return result;
@@ -280,8 +283,6 @@ public class THQSUtil {
     }
 
 
-
-
     /**
      * 使用HttpURLConnection
      * 访问CC视频接口的函数
@@ -294,13 +295,13 @@ public class THQSUtil {
         URL url;
         HttpURLConnection conn;
         try {
-            url = new URL(requestUri + decode(url_prefix + params, isVideo));
+            url = new URL(requestUri + decode(String.format(url_prefix_prefix, UserContextHelper.getUserId()) + params, isVideo));
             conn = (HttpURLConnection) url.openConnection();
             conn.setDoOutput(true);
             conn.setDoInput(true);
             conn.connect();
             try (InputStream inputStream = conn.getInputStream();
-                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"))){
+                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream, "UTF-8"))) {
                 StringBuilder stringBuffer = new StringBuilder();
                 String line;
                 while ((line = bufferedReader.readLine()) != null) {

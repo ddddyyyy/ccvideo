@@ -7,8 +7,6 @@ import java.util.Date;
 import java.util.stream.Collectors;
 
 import static com.mdy.ccvideo.dict.THQSConstants.dateFormat;
-import static com.mdy.ccvideo.dict.THQSConstants.key;
-import static com.mdy.ccvideo.dict.THQSConstants.room_key;
 
 public class RequestHelper {
     /**
@@ -93,9 +91,9 @@ public class RequestHelper {
         //进行md5的参数
         String temp;
         if (isVideo) {
-            temp = hashedQueryString + "&salt=" + key;
+            temp = hashedQueryString + "&salt=" + UserContextHelper.getKey();
         } else {
-            temp = hashedQueryString + "&salt=" + room_key;
+            temp = hashedQueryString + "&salt=" + UserContextHelper.getRoomKey();
         }
         return hashedQueryString + "&hash=" + getMD5(temp);
     }
