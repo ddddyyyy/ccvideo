@@ -32,23 +32,15 @@ public enum THQSConstants {
 
     // =================================== CC API 列表 =======================================  //
 
-    /**
-     * 视频文件夹ID
-     */
-    public static final String MUKE_CATEGORY_ID = "";
-
-    /**
-     * 回调地址
-     */
-    public static final String NOTIFY_URL = "";
-
 
     //点播的key
     public static final String key = "";
     //直播的key
     public static final String room_key = "";
+    //用户ID
+    public static final String userid = "";
     //同一返回JSON格式，并加上userid
-    public static final String url_prefix = "format=json&userid=87DDC645E8B3BAA1";
+    public static final String url_prefix = String.format("format=json&userid=%s", userid);
     //日期的格式
     public static final String dateFormat = "yyyy-MM-dd HH:mm:ss";
 
