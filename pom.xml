@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.ddddyyyy</groupId>
     <artifactId>ccvideo-spring-boot-starter</artifactId>
-    <version>1.0</version>
+    <version>1.2</version>
     <name>${project.groupId}:${project.artifactId}</name>
     <description>CC视频的接口使用工具包</description>
     <url>https://github.com/ddddyyyy/ccvideo</url>
