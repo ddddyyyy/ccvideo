@@ -18,7 +18,7 @@ public class UserContextHelper {
         return getInstance().getUserid();
     }
 
-    private static UserContext getInstance() {
+    public static UserContext getInstance() {
         if (null == INSTANCE) {
             synchronized (UserContext.class) {
                 INSTANCE = new UserContext();
